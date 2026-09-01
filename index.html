@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基隆市 OpenID 密碼變更與設備同步互動指引</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active {
+            border-bottom: 3px solid #3b82f6;
+            color: #1d4ed8;
+            font-weight: 700;
+        }
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background-color: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Chosen Palette: Warm Professional Slate & Indigo (Background: Slate-50, Navy/Indigo Header, Blue/Emerald Accents) -->
+    <!-- Application Structure Plan: Designed as a task-oriented interactive dashboard:
+         1. Header & Urgency Bar: Dynamic deadline countdown timer (target: 2026-10-01) & quick overview.
+         2. Interactive Password Safety Validator & Phase 1 Guide: Live password policy compliance checker (9+ chars, account filter, weak password pattern) allowing users to test potential passwords securely in-browser.
+         3. Dynamic Wi-Fi Device Setup Wizard (Phase 2): OS Tab selector (iOS, Android, Mac, Win11, Win10/7) with specific instructions, direct EAP installer download buttons, "Forget Network" prerequisite highlights, and one-click copyable domain formats (@kl.edu.tw).
+         4. Interactive Troubleshooting & Diagnostic Tree: Guided QA wizard to solve lockout & Wi-Fi connection issues with external guide links. -->
+    <!-- Visualization & Content Choices:
+         - Target Audience: Teachers, faculty, and administrative staff across Keelung City schools.
+         - Password Policy Validator: Live JS text box with status badges to teach complex password rules effortlessly.
+         - Eduroam Sync Wizard: Tabbed interactive list with OS icons (Unicode) & direct file download buttons for Windows EAP tools.
+         - Troubleshooting Tree: Interactive QA selector mapping user issues directly to step-by-step resolution. NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Top Navigation Header -->
+    <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🔐</span>
+                <div>
+                    <h1 class="font-bold text-lg sm:text-xl tracking-tight">基隆市 OpenID 密碼變更與設備同步指引</h1>
+                    <p class="text-xs text-indigo-200">資安合規與 180 天密碼定期變更作業平台</p>
+                </div>
+            </div>
+            <nav class="flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm">
+                <button onclick="scrollToSection('policy-section')" class="px-3 py-1.5 rounded hover:bg-indigo-800 transition">資安規範</button>
+                <button onclick="scrollToSection('reset-section')" class="px-3 py-1.5 rounded hover:bg-indigo-800 transition">密碼變更</button>
+                <button onclick="scrollToSection('wifi-section')" class="px-3 py-1.5 rounded hover:bg-indigo-800 transition">Wi-Fi同步</button>
+                <button onclick="scrollToSection('faq-section')" class="px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold transition">故障診斷</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Banner / Announcement & Countdown -->
+    <section class="bg-gradient-to-r from-indigo-800 to-blue-700 text-white py-8 px-4 sm:px-6 shadow-inner">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div class="md:col-span-2 space-y-3">
+                <div class="inline-flex items-center bg-amber-400 text-amber-950 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                    ⚠️ 重要資安通知
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                    2026 年 10 月 1 日起啟用「180 天自動停用機制」
+                </h2>
+                <p class="text-indigo-100 text-sm sm:text-base leading-relaxed">
+                    為落實資訊安全防護規範並維護個人資料安全，凡 OpenID 密碼超過 180 天未更新者，帳號將由系統自動停用。請全體教職員與使用者儘速完成密碼變更與各項設備同步設定。
+                </p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 text-center">
+                <span class="text-xs uppercase text-indigo-200 font-semibold tracking-wider">距政策正式生效倒數</span>
+                <div id="countdown-timer" class="text-3xl font-black my-2 text-amber-300 font-mono">
+                    載入中...
+                </div>
+                <p class="text-xs text-indigo-100">目標日期：2026 年 10 月 1 日 00:00</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 flex-grow">
+
+        <!-- SECTION 1: Policy & Password Validator -->
+        <section id="policy-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <span>📌</span> 新規重點與密碼強度試算器
+                </h3>
+                <p class="text-slate-600 text-sm mt-1">
+                    本區塊說明 180 天自動停用規則與密碼安全規範。您可使用下方的互動模擬器測試擬使用的新密碼是否合規。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left: Rules summary -->
+                <div class="space-y-4 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <h4 class="font-bold text-indigo-900 text-base border-b pb-2">1. 資安規範要點</h4>
+                    <ul class="space-y-2 text-sm text-slate-700">
+                        <li class="flex items-start gap-2">
+                            <span class="text-amber-500 font-bold">●</span>
+                            <span><strong>長度要求：</strong>必須大於 8 碼（<strong>至少 9 碼以上</strong>）。</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-amber-500 font-bold">●</span>
+                            <span><strong>內容限制：</strong>嚴禁包含個人帳號名稱、弱密碼（如 <code class="bg-slate-200 px-1 py-0.5 rounded text-xs">123456</code>）、常見數字或常見英文單字。</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-amber-500 font-bold">●</span>
+                            <span><strong>歷史紀錄：</strong>新密碼<strong>不可與前 3 次</strong>使用過之密碼相同。</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-amber-500 font-bold">●</span>
+                            <span><strong>停用復用流程：</strong>若因逾期遭停用，須洽各校<strong>資訊組長</strong>並出示<strong>健保卡</strong>進行身分驗證解鎖。</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right: Password Policy Tester -->
+                <div class="bg-indigo-50/60 p-5 rounded-xl border border-indigo-100 space-y-4">
+                    <h4 class="font-bold text-indigo-900 text-base border-b border-indigo-200 pb-2">
+                        🧪 互動密碼強度合規測試器
+                    </h4>
+                    <p class="text-xs text-slate-600">
+                        試著輸入您預計使用的新密碼（僅於瀏覽器本機即時檢驗，不會上傳任何資料）：
+                    </p>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">測試帳號（選填，檢測是否包含帳號名）：</label>
+                            <input type="text" id="test-username" placeholder="例如：teacher123" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">測試新密碼：</label>
+                            <input type="password" id="test-password" placeholder="請輸入欲測試之密碼" class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+
+                        <div id="password-feedback" class="space-y-1.5 text-xs pt-2">
+                            <div id="rule-length" class="flex items-center gap-2 text-slate-500">
+                                <span class="rule-icon">❌</span> 長度達 9 碼以上
+                            </div>
+                            <div id="rule-username" class="flex items-center gap-2 text-slate-500">
+                                <span class="rule-icon">❌</span> 不包含個人帳號名稱
+                            </div>
+                            <div id="rule-common" class="flex items-center gap-2 text-slate-500">
+                                <span class="rule-icon">❌</span> 不含弱密碼或簡單連續字元 (如 123456, password)
+                            </div>
+                        </div>
+
+                        <div id="password-status" class="mt-3 p-2.5 rounded-lg text-xs font-bold text-center bg-slate-200 text-slate-700">
+                            請輸入密碼進行檢測
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Reset Steps (Phase 1) -->
+        <section id="reset-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <span>🚀</span> 第一階段：OpenID 密碼變更操作步驟
+                </h3>
+                <p class="text-slate-600 text-sm mt-1">
+                    請依照以下標準 5 步驟前往官方入口網站完成線上密碼更換。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="step-badge">1</span>
+                        <span class="font-bold text-sm text-slate-800">開啟網站</span>
+                    </div>
+                    <p class="text-xs text-slate-600">使用瀏覽器前往基隆市 OpenID 入口網頁。</p>
+                    <a href="https://openid.kl.edu.tw/" target="_blank" class="inline-flex items-center justify-center text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-1.5 px-3 rounded text-center transition">
+                        開啟系統 ↗
+                    </a>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="step-badge">2</span>
+                        <span class="font-bold text-sm text-slate-800">登入系統</span>
+                    </div>
+                    <p class="text-xs text-slate-600">使用您「現有」的帳號與舊密碼登入系統。</p>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="step-badge">3</span>
+                        <span class="font-bold text-sm text-slate-800">選取功能</span>
+                    </div>
+                    <p class="text-xs text-slate-600">點選頂部或側邊選單中的 <strong>「資料 / 重設密碼」</strong>。</p>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="step-badge">4</span>
+                        <span class="font-bold text-sm text-slate-800">輸入新密碼</span>
+                    </div>
+                    <p class="text-xs text-slate-600">輸入符合資安規範的新密碼（9 碼以上）並再次確認。</p>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="step-badge bg-emerald-600">5</span>
+                        <span class="font-bold text-sm text-slate-800">儲存完成</span>
+                    </div>
+                    <p class="text-xs text-slate-600">點擊「儲存」按鈕完成變更，接著進行第二階段設備同步。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Wi-Fi Sync Wizard (Phase 2) -->
+        <section id="wifi-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <span>📱</span> 第二階段：校園無線網路 (eduroam 802.1X) 各裝置分類同步指南
+                </h3>
+                <p class="text-slate-600 text-sm mt-1">
+                    更換密碼後，請務必先於裝置上清除舊密碼紀錄，再選擇您的裝置類型進行 `eduroam` 無線網路設定。
+                </p>
+            </div>
+
+            <!-- Mandatory Prerequisite Alert Block -->
+            <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl space-y-2">
+                <div class="flex items-center gap-2 text-rose-800 font-bold text-sm sm:text-base">
+                    <span>🚨 重新連線 Wi-Fi 前必做：清除舊密碼紀錄（忘記／刪除已知網路）</span>
+                </div>
+                <p class="text-xs sm:text-sm text-rose-900 leading-relaxed">
+                    更新密碼後，若設備未及時清除舊紀錄，背景會以舊密碼頻繁連線，<strong>導致帳號因重複驗證失敗而被系統暫時鎖定！</strong>請依下列步驟先忘記網路：
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
+                    <div class="bg-white/80 p-2.5 rounded border border-rose-200">
+                        <strong>📱 手機 / 平板 (iOS / Android)：</strong><br>
+                        進入「設定」➔「Wi-Fi」➔ 點選 <code class="bg-rose-100 text-rose-900 px-1 rounded">eduroam</code> 旁的 ℹ️ 圖示或長按名稱 ➔ 點選<strong>「忘記此網路設定」</strong>。
+                    </div>
+                    <div class="bg-white/80 p-2.5 rounded border border-rose-200">
+                        <strong>💻 電腦 (Windows / Mac)：</strong><br>
+                        <strong>Win:</strong> 設定 ➔ 網路與網際網路 ➔ Wi-Fi ➔ 管理已知網路 ➔ eduroam ➔ <strong>「忘記」</strong>。<br>
+                        <strong>Mac:</strong> 系統設定 ➔ Wi-Fi ➔ 進階 ➔ 已儲存網路列表中找到 eduroam ➔ <strong>「移除此網路」</strong>。
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account format highlight helper -->
+            <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="space-y-1">
+                    <span class="text-xs font-bold text-amber-900 uppercase tracking-wide">💡 重要驗證格式提醒</span>
+                    <p class="text-sm text-amber-900">
+                        連線 <code class="font-bold">eduroam</code> 時，使用者名稱／帳號必須輸入完整格式：
+                        <span class="inline-block font-mono font-bold bg-amber-200 text-amber-950 px-2 py-0.5 rounded text-base">OpenID帳號@kl.edu.tw</span>
+                    </p>
+                </div>
+                <button onclick="copyDomainExample()" class="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition flex items-center gap-1">
+                    <span>📋</span> 複製範例格式 (@kl.edu.tw)
+                </button>
+            </div>
+
+            <!-- Interactive OS Tabs -->
+            <div class="border-b border-slate-200">
+                <div class="flex flex-wrap -mb-px gap-2 sm:gap-6 text-sm font-medium text-center" id="os-tab-list">
+                    <button onclick="switchOsTab('ios')" id="tab-ios" class="py-3 px-3 sm:px-4 border-b-2 border-transparent hover:text-indigo-600 tab-active flex items-center gap-2">
+                        <span>📱</span> Apple iOS / iPadOS
+                    </button>
+                    <button onclick="switchOsTab('android')" id="tab-android" class="py-3 px-3 sm:px-4 border-b-2 border-transparent hover:text-indigo-600 flex items-center gap-2">
+                        <span>🤖</span> Android 裝置
+                    </button>
+                    <button onclick="switchOsTab('mac')" id="tab-mac" class="py-3 px-3 sm:px-4 border-b-2 border-transparent hover:text-indigo-600 flex items-center gap-2">
+                        <span>💻</span> macOS (MacBook)
+                    </button>
+                    <button onclick="switchOsTab('win11')" id="tab-win11" class="py-3 px-3 sm:px-4 border-b-2 border-transparent hover:text-indigo-600 flex items-center gap-2">
+                        <span>🪟</span> Windows 11
+                    </button>
+                    <button onclick="switchOsTab('win10')" id="tab-win10" class="py-3 px-3 sm:px-4 border-b-2 border-transparent hover:text-indigo-600 flex items-center gap-2">
+                        <span>💻</span> Windows 10 / 7
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Content Display Area -->
+            <div id="os-tab-content" class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                <!-- Tab JS will render dynamically here -->
+            </div>
+        </section>
+
+        <!-- SECTION 4: FAQ & Interactive Troubleshooting Tree -->
+        <section id="faq-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-8">
+            <div>
+                <!-- Added Link Banner right before FAQ Header -->
+                <div class="mb-3">
+                    <a href="https://oldcsjh.kl.edu.tw/254" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:text-blue-800 text-xs sm:text-sm font-bold transition shadow-sm">
+                        <span>📄</span> 若需要圖文內容，可以到這個網址下載說明文件 ↗
+                    </a>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <span>❓</span> 常見問題與互動障礙排除決策樹
+                </h3>
+                <p class="text-slate-600 text-sm mt-1">
+                    遇上連線困難或帳號被鎖？可使用下方互動診斷器快速尋找解決方案。
+                </p>
+            </div>
+
+            <!-- Interactive Diagnostic Wizard -->
+            <div class="bg-indigo-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+                <h4 class="text-lg font-bold text-amber-300 flex items-center gap-2">
+                    <span>⚡</span> 快速問題診斷小幫手
+                </h4>
+                <div id="diagnostic-container" class="space-y-4">
+                    <p class="text-sm text-indigo-100">請點選您當前發生的情況：</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button onclick="runDiagnostic('locked')" class="bg-indigo-800 hover:bg-indigo-700 text-left p-3 rounded-xl border border-indigo-700 text-xs sm:text-sm font-medium transition">
+                            🔒 情況 A：改完密碼後帳號立刻被鎖定，或無法連線
+                        </button>
+                        <button onclick="runDiagnostic('expired')" class="bg-indigo-800 hover:bg-indigo-700 text-left p-3 rounded-xl border border-indigo-700 text-xs sm:text-sm font-medium transition">
+                            🛑 情況 B：超過 180 天未改密碼，帳號顯示遭自動停用
+                        </button>
+                        <button onclick="runDiagnostic('format')" class="bg-indigo-800 hover:bg-indigo-700 text-left p-3 rounded-xl border border-indigo-700 text-xs sm:text-sm font-medium transition">
+                            📶 情況 C：eduroam 提示密碼錯誤或憑證驗證不通過
+                        </button>
+                        <button onclick="runDiagnostic('win11')" class="bg-indigo-800 hover:bg-indigo-700 text-left p-3 rounded-xl border border-indigo-700 text-xs sm:text-sm font-medium transition">
+                            🪟 情況 D：Windows 11 連接 eduroam 一直跳出驗證失敗
+                        </button>
+                    </div>
+                </div>
+                <div id="diagnostic-result" class="hidden bg-indigo-950 p-4 rounded-xl border border-amber-400/50 space-y-2 text-xs sm:text-sm">
+                    <!-- Diagnostic result injected here -->
+                </div>
+            </div>
+
+            <!-- Standard FAQ Accordion -->
+            <div class="space-y-3 pt-4 border-t border-slate-200">
+                <h4 class="font-bold text-slate-800 text-base">📖 常見問答 (FAQ)</h4>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <button onclick="toggleFaq('faq-1')" class="w-full text-left p-4 bg-slate-50 hover:bg-slate-100 font-bold text-sm text-slate-800 flex justify-between items-center">
+                        <span>Q1：如果 10/1 後我的 OpenID 帳號不小心被系統自動停用了，該怎麼辦？</span>
+                        <span id="icon-faq-1" class="text-indigo-600">▼</span>
+                    </button>
+                    <div id="faq-1" class="hidden p-4 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 space-y-2">
+                        <p><strong>解答：</strong>請親自洽詢貴校 <strong>資訊組長</strong>，並請攜帶或提示 <strong>健保卡</strong>，由資訊組長核對身份後透過管理權限為您申請帳號復用。</p>
+                    </div>
+                </div>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <button onclick="toggleFaq('faq-2')" class="w-full text-left p-4 bg-slate-50 hover:bg-slate-100 font-bold text-sm text-slate-800 flex justify-between items-center">
+                        <span>Q2：剛改完密碼，帳號怎麼立刻被鎖定了？</span>
+                        <span id="icon-faq-2" class="text-indigo-600">▼</span>
+                    </button>
+                    <div id="faq-2" class="hidden p-4 bg-white text-xs sm:text-sm text-slate-700 border-t border-slate-200 space-y-2">
+                        <p><strong>解答：</strong>通常是因為手機或平板電腦還開啟著 Wi-Fi 自動連線，或背景郵件正在用舊密碼嘗試收信。</p>
+                        <p class="font-bold text-indigo-900">處理步驟：</p>
+                        <ol class="list-decimal list-inside text-xs space-y-1 text-slate-600">
+                            <li>請先將手機開啟「飛航模式」或關閉 Wi-Fi。</li>
+                            <li>聯繫校內資訊組長確認帳號狀態與解鎖。</li>
+                            <li>解開後，請先將手機 Wi-Fi 設定「忘記網路」，再輸入新密碼重新連線。</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Technical Support Section -->
+        <section class="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 text-center space-y-3">
+            <h3 class="font-bold text-indigo-950 text-base sm:text-lg">📞 技術支援與服務窗口</h3>
+            <p class="text-xs sm:text-sm text-slate-600">
+                若您在操作過程中有任何問題，歡迎透過以下管道尋求協助：
+            </p>
+            <div class="flex flex-wrap justify-center items-center gap-4 text-xs sm:text-sm pt-2">
+                <a href="https://openid.kl.edu.tw/" target="_blank" class="bg-white border border-indigo-300 text-indigo-800 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition shadow-sm">
+                    🌐 OpenID 系統入口
+                </a>
+                <span class="bg-indigo-200 text-indigo-900 px-4 py-2 rounded-lg font-bold">
+                    🏫 校內支援：請洽資訊組長
+                </span>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-xs border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 space-y-1">
+            <p>基隆市立中山高中資訊組宣告</p>
+            <p>© 2026 Keelung City OpenID Password & Device Synchronization Guide</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Data for OS Setup Instructions
+        const osInstructions = {
+            ios: {
+                title: "📱 Apple iOS / iPadOS 裝置 (iPhone / iPad)",
+                badge: "iOS 13+",
+                steps: [
+                    "開啟 <strong>「設定」</strong> ➔ <strong>「Wi-Fi」</strong>。",
+                    "點選無線網路訊號 <strong><code class='bg-slate-200 px-1 rounded'>eduroam</code></strong>。",
+                    "<strong>使用者名稱：</strong> 輸入完整帳號 <code class='text-indigo-700 font-bold'>OpenID帳號@kl.edu.tw</code>。",
+                    "<strong>密碼：</strong> 輸入更新後的 OpenID 密碼，點選「加入」。",
+                    "跳出伺服器憑證畫面時，點選右上角 <strong>「信任」</strong> 即可完成連線。"
+                ]
+            },
+            android: {
+                title: "🤖 Android 裝置",
+                badge: "Android 8+",
+                steps: [
+                    "開啟 <strong>「設定」</strong> ➔ <strong>「Wi-Fi」</strong>，點選 <strong><code class='bg-slate-200 px-1 rounded'>eduroam</code></strong>。",
+                    "於驗證設定視窗進行以下設定：<br>" +
+                    "• <strong>EAP 方法：</strong> 選擇 <code class='bg-slate-200 px-1 rounded font-bold'>PEAP</code><br>" +
+                    "• <strong>階段 2 驗證：</strong> 選擇 <code class='bg-slate-200 px-1 rounded'>無</code>（或預設）<br>" +
+                    "• <strong>CA 憑證：</strong> 選擇 <code class='bg-slate-200 px-1 rounded font-bold'>不進行驗證</code><br>" +
+                    "• <strong>身份（身分）：</strong> 輸入 <code class='text-indigo-700 font-bold'>OpenID帳號@kl.edu.tw</code><br>" +
+                    "• <strong>匿名身份：</strong> 保持空白<br>" +
+                    "• <strong>密碼：</strong> 輸入更新後的 OpenID 密碼",
+                    "點選 <strong>「連線」</strong> 即可完成。"
+                ]
+            },
+            mac: {
+                title: "💻 Apple macOS (MacBook)",
+                badge: "macOS",
+                steps: [
+                    "點擊螢幕右上角 Wi-Fi 圖示，選取 <strong><code class='bg-slate-200 px-1 rounded'>eduroam</code></strong>。",
+                    "於彈出視窗輸入：<br>" +
+                    "• <strong>帳號：</strong> <code class='text-indigo-700 font-bold'>OpenID帳號@kl.edu.tw</code><br>" +
+                    "• <strong>密碼：</strong> 更新後的 OpenID 密碼",
+                    "點選 <strong>「順利連線/加入」</strong> 即可連線。"
+                ]
+            },
+            win11: {
+                title: "💻 Windows 11 系統 (需安裝 EAP-GTC)",
+                badge: "Win 11 專用",
+                steps: [
+                    "<strong>步驟一：下載並安裝 EAP-GTC 元件</strong><br>" +
+                    "1. 點擊下方連結下載安裝檔：<br>" +
+                    "<a href='https://bm14.chu.edu.tw/var/file/52/1052/img/370/EAP-GTC-x64-Win10.msi' target='_blank' rel='noopener noreferrer' class='inline-flex items-center gap-1.5 my-2 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-sm'>" +
+                    "<span>📥</span> 下載 Windows 11 EAP-GTC-x64-Win10.msi" +
+                    "</a><br>" +
+                    "2. 執行檔點選【Next】➔ 勾選【I accept the terms...】➔【Next】➔【Complete】➔【Install】➔【Finish】。<br>" +
+                    "3. 系統跳出提示時，點選 <strong>【Yes】重啟電腦</strong>。",
+                    "<strong>步驟二：手動建立 eduroam 連線</strong><br>" +
+                    "1. 開啟「設定」➔「網路和網際網路」➔「撥號」（或「設定新連線」）。<br>" +
+                    "2. 點選「設定新連線」➔ 選擇「手動連線到無線網路」。<br>" +
+                    "3. 設定參數：網路名稱為 <code class='font-bold'>eduroam</code>，安全性類型為 <code class='font-bold'>WPA2-Enterprise</code>，加密類型為 <code class='font-bold'>AES</code>。<br>" +
+                    "4. 點選「下一步」➔ 選擇「變更連線設定」➔ 切換至「安全性」標籤頁 ➔ 點選「設定(S)」（位於 Microsoft: Protected EAP 旁邊）。<br>" +
+                    "5. <strong>取消勾選</strong> <code class='text-rose-700 font-bold'>透過驗證憑證來確認伺服器身分識別</code>。<br>" +
+                    "6. 將下方「選擇驗證方法」改為 <code class='font-bold'>EAP-Token</code>，點選「確定」。<br>" +
+                    "7. 點擊工作列右下角 Wi-Fi 選取 eduroam 連線。<br>" +
+                    "8. 輸入 User name: <code class='text-indigo-700 font-bold'>OpenID帳號@kl.edu.tw</code>、Password: 更新後的密碼 (Logon domain 留空)，點擊【OK】。"
+                ]
+            },
+            win10: {
+                title: "💻 Windows 10 / Windows 7 系統",
+                badge: "Win 10 / Win 7",
+                steps: [
+                    "<strong>步驟一：下載並安裝對應位元 EAP 元件</strong><br>" +
+                    "請先確認系統位元，並下載適用安裝檔：<br>" +
+                    "<div class='flex flex-wrap gap-2 my-2.5'>" +
+                    "<a href='http://www.sfjh.hcc.edu.tw/app/index.php?Action=downloadfile&file=WVhSMFlXTm9MemcwTDNCMFlWOHlNalkwT0RKZk5EZzNNVGN3N184NE1EQXlNeTV0YzJrPQ%3D%3D&fname=QO5401TSLO44TXHH44VWUSXTOOTWGCLKDGB0WW20UTGDCCTSYSTSA0FGSSOKFCA0ICPOGGIHDG04ROXTYWOKUWXSDGRKCCLKTXYTA4CC34A4WX01OOTSGHGHROPOSSOO' target='_blank' rel='noopener noreferrer' class='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition shadow-sm'>" +
+                    "<span>📥</span> 下載 Win10 (64-bit) EAP 補丁" +
+                    "</a>" +
+                    "<a href='http://www.sfjh.hcc.edu.tw/app/index.php?Action=downloadfile&file=WVhSMFlXTm9MemcwTDNCMFlWOHlNalkwT0RKZk16Z3dNRE14TTE4NE1EQXlNeTV0YzJrPQ==&fname=QO5401TSLO44TXHH44VWUSXTOOTWGCLKDGB0WW20UTGDML44NKUSA0A4SSOKZWROMKPOGGIHDG04ROXTYWOKUWXSDGRKCCLKTXYTA4CC34A4WX01OOTSGHGHROPOSSOO' target='_blank' rel='noopener noreferrer' class='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs transition shadow-sm'>" +
+                    "<span>📥</span> 下載 Win10 (32-bit) EAP 補丁" +
+                    "</a>" +
+                    "</div>" +
+                    "下載後完成安裝，並<strong>重啟電腦</strong>。",
+                    "<strong>步驟二：手動設定連線</strong><br>" +
+                    "1. 至「控制台」➔「網路和共用中心」➔ 點選「設定新的連線或網路」。<br>" +
+                    "2. 選擇「手動連線到無線網路」，輸入網路名稱 <code class='font-bold'>eduroam</code>，安全性類型選擇 <code class='font-bold'>WPA2-Enterprise</code>。<br>" +
+                    "3. 點選「變更連線設定」➔ 切換至「安全性」頁籤。<br>" +
+                    "4. 驗證方法選取 <code class='font-bold'>Cisco: PEAP</code> 或 <code class='font-bold'>Microsoft: Protected EAP (PEAP)</code> ➔ 點選「設定」。<br>" +
+                    "5. 取消勾選 <code class='text-rose-700 font-bold'>Validate server certificate</code>（確認伺服器憑證）。<br>" +
+                    "6. 切換至 User Credentials 頁籤 ➔ 勾選 <code class='font-bold'>Use saved username and password</code>：<br>" +
+                    "   • Username: <code class='text-indigo-700 font-bold'>OpenID帳號@kl.edu.tw</code><br>" +
+                    "   • Password: 更新後的 OpenID 密碼<br>" +
+                    "7. 點擊「確定」儲存，重新點擊 Wi-Fi 連線。"
+                ]
+            }
+        };
+
+        // Scroll helper
+        function scrollToSection(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Switch OS Tab
+        function switchOsTab(osKey) {
+            // Update tab styles
+            const tabs = ['ios', 'android', 'mac', 'win11', 'win10'];
+            tabs.forEach(key => {
+                const btn = document.getElementById(`tab-${key}`);
+                if (key === osKey) {
+                    btn.classList.add('tab-active');
+                } else {
+                    btn.classList.remove('tab-active');
+                }
+            });
+
+            // Render Content
+            const data = osInstructions[osKey];
+            const contentDiv = document.getElementById('os-tab-content');
+            
+            let html = `
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                    <h4 class="font-bold text-slate-900 text-base sm:text-lg">${data.title}</h4>
+                    <span class="bg-indigo-100 text-indigo-800 text-xs px-2.5 py-1 rounded-full font-bold">${data.badge}</span>
+                </div>
+                <ol class="space-y-4">
+            `;
+
+            data.steps.forEach((stepText, idx) => {
+                html += `
+                    <li class="flex items-start gap-3 bg-white p-3.5 rounded-lg border border-slate-200 shadow-sm text-xs sm:text-sm text-slate-700">
+                        <span class="step-badge shrink-0 text-xs">${idx + 1}</span>
+                        <div class="leading-relaxed space-y-1">${stepText}</div>
+                    </li>
+                `;
+            });
+
+            html += `</ol>`;
+            contentDiv.innerHTML = html;
+        }
+
+        // Copy Domain Helper
+        function copyDomainExample() {
+            navigator.clipboard.writeText("@kl.edu.tw");
+            alert("已複製帳號後綴格式：@kl.edu.tw\n請於設定時在帳號後方加上此網域！");
+        }
+
+        // Live Password Policy Tester Logic
+        const testPasswordInput = document.getElementById('test-password');
+        const testUsernameInput = document.getElementById('test-username');
+
+        function validatePassword() {
+            const pwd = testPasswordInput.value;
+            const uname = testUsernameInput.value.trim().toLowerCase();
+
+            const ruleLength = document.getElementById('rule-length');
+            const ruleUsername = document.getElementById('rule-username');
+            const ruleCommon = document.getElementById('rule-common');
+            const statusBox = document.getElementById('password-status');
+
+            if (!pwd) {
+                statusBox.className = "mt-3 p-2.5 rounded-lg text-xs font-bold text-center bg-slate-200 text-slate-700";
+                statusBox.innerText = "請輸入密碼進行檢測";
+                ruleLength.className = "flex items-center gap-2 text-slate-500";
+                ruleLength.querySelector('.rule-icon').innerText = "❌";
+                ruleUsername.className = "flex items-center gap-2 text-slate-500";
+                ruleUsername.querySelector('.rule-icon').innerText = "❌";
+                ruleCommon.className = "flex items-center gap-2 text-slate-500";
+                ruleCommon.querySelector('.rule-icon').innerText = "❌";
+                return;
+            }
+
+            // Check 1: Length >= 9
+            const isLengthOk = pwd.length >= 9;
+            // Check 2: Not include username
+            const isUsernameOk = uname === "" || !pwd.toLowerCase().includes(uname);
+            // Check 3: Not common weak
+            const weakPatterns = ['123456', 'password', '88888888', 'qwerty', '123456789', '00000000'];
+            const isNotWeak = !weakPatterns.some(pat => pwd.toLowerCase().includes(pat));
+
+            // Update UI
+            updateRuleIcon(ruleLength, isLengthOk, "長度達 9 碼以上（目前: " + pwd.length + " 碼）");
+            updateRuleIcon(ruleUsername, isUsernameOk, uname ? "不包含帳號名稱 (" + uname + ")" : "不包含個人帳號名稱");
+            updateRuleIcon(ruleCommon, isNotWeak, "不含弱密碼或常見連續字元");
+
+            if (isLengthOk && isUsernameOk && isNotWeak) {
+                statusBox.className = "mt-3 p-2.5 rounded-lg text-xs font-bold text-center bg-emerald-100 text-emerald-800 border border-emerald-300";
+                statusBox.innerText = "✅ 符合基隆市 OpenID 資安規範！";
+            } else {
+                statusBox.className = "mt-3 p-2.5 rounded-lg text-xs font-bold text-center bg-rose-100 text-rose-800 border border-rose-300";
+                statusBox.innerText = "⚠️ 未符合資安規範，請調整密碼組合";
+            }
+        }
+
+        function updateRuleIcon(element, isValid, labelText) {
+            const icon = element.querySelector('.rule-icon');
+            if (isValid) {
+                element.className = "flex items-center gap-2 text-emerald-700 font-medium";
+                icon.innerText = "✅";
+            } else {
+                element.className = "flex items-center gap-2 text-rose-600 font-medium";
+                icon.innerText = "❌";
+            }
+            element.childNodes[2].nodeValue = " " + labelText;
+        }
+
+        testPasswordInput.addEventListener('input', validatePassword);
+        testUsernameInput.addEventListener('input', validatePassword);
+
+        // Countdown Timer Logic
+        function updateCountdown() {
+            const targetDate = new Date("2026-10-01T00:00:00+08:00").getTime();
+            const now = new Date().getTime();
+            const difference = targetDate - now;
+
+            const timerElement = document.getElementById('countdown-timer');
+
+            if (difference <= 0) {
+                timerElement.innerText = "機制已正式生效！";
+                return;
+            }
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            timerElement.innerText = `${days} 天 ${hours} 時 ${minutes} 分 ${seconds} 秒`;
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+
+        // FAQ Toggle Logic
+        function toggleFaq(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                icon.innerText = "▲";
+            } else {
+                el.classList.add('hidden');
+                icon.innerText = "▼";
+            }
+        }
+
+        // Diagnostic Wizard Logic
+        function runDiagnostic(type) {
+            const res = document.getElementById('diagnostic-result');
+            res.classList.remove('hidden');
+
+            if (type === 'locked') {
+                res.innerHTML = `
+                    <p class="font-bold text-amber-300 text-sm">🔒 診斷結果：背景舊密碼連線鎖定</p>
+                    <p>這是最常見的問題！原因為手機或平板的 Wi-Fi 仍儲存舊密碼，在背景不斷嘗試連線導致遭系統鎖定。</p>
+                    <div class="bg-indigo-900 p-2.5 rounded border border-indigo-700 text-xs space-y-1 mt-2">
+                        <strong>立即處置步驟：</strong><br>
+                        1. 先將手機開啟「飛航模式」或關閉 Wi-Fi。<br>
+                        2. 請校內資訊組長協助核對身份並解鎖帳號。<br>
+                        3. 於手機點選 eduroam「忘記網路設定」。<br>
+                        4. 重新輸入 <code class="text-amber-300 font-bold">OpenID帳號@kl.edu.tw</code> 與新密碼連線。
+                    </div>
+                `;
+            } else if (type === 'expired') {
+                res.innerHTML = `
+                    <p class="font-bold text-amber-300 text-sm">🛑 診斷結果：180 天逾期系統停用</p>
+                    <p>因超過 180 天未變更密碼，帳號已觸發安全保護機制遭自動停用。</p>
+                    <div class="bg-indigo-900 p-2.5 rounded border border-indigo-700 text-xs space-y-1 mt-2">
+                        <strong>復用申請流程：</strong><br>
+                        請親自攜帶或出示 <strong>健保卡</strong>，前往校內資訊組尋求 <strong>資訊組長 / 資訊教師</strong> 進行人臉身分核對，即可透過管理系統為您恢復帳號使用權限。
+                    </div>
+                `;
+            } else if (type === 'format') {
+                res.innerHTML = `
+                    <p class="font-bold text-amber-300 text-sm">📶 診斷結果：eduroam 驗證格式不完整</p>
+                    <p>eduroam 為跨校漫遊網路，輸入純帳號（如 <code class="line-through">teacher123</code>）將無法通過RADIUS認證伺服器。</p>
+                    <div class="bg-indigo-900 p-2.5 rounded border border-indigo-700 text-xs space-y-1 mt-2">
+                        <strong>標準格式修正：</strong><br>
+                        使用者名稱欄位必須帶有完整後綴：<code class="text-amber-300 font-bold">帳號@kl.edu.tw</code><br>
+                        例如：<code class="text-amber-300">teacher123@kl.edu.tw</code>
+                    </div>
+                `;
+            } else if (type === 'win11') {
+                res.innerHTML = `
+                    <p class="font-bold text-amber-300 text-sm">🪟 診斷結果：Windows 11 安全性憑證擋攔</p>
+                    <p>Windows 11 預設安全性機制會驗證伺服器憑證，導致 eduroam 直連失敗。</p>
+                    <div class="bg-indigo-900 p-2.5 rounded border border-indigo-700 text-xs space-y-1 mt-2">
+                        <strong>解決方法：</strong><br>
+                        1. 點擊下載並安裝 <a href="https://bm14.chu.edu.tw/var/file/52/1052/img/370/EAP-GTC-x64-Win10.msi" target="_blank" class="text-amber-300 underline font-bold">EAP-GTC-x64-Win10.msi</a> 補丁元件並重啟電腦。<br>
+                        2. 於安全性設定中，<strong>取消勾選</strong>「透過驗證憑證來確認伺服器身分識別」。<br>
+                        3. 將驗證方法改為 <code class="text-amber-300 font-bold">EAP-Token</code> 即可順利連線。
+                    </div>
+                `;
+            }
+        }
+
+        // DOM Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            // Render initial OS Tab
+            switchOsTab('ios');
+        });
+    </script>
+</body>
+</html>
